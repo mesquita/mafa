@@ -50,7 +50,7 @@ def plot_confusion_matrix(data_true,
     plt.yticks(tick_marks, classes)
 
     fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 1.7
+    thresh = cm.max() / 2
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j,
                  i,
@@ -61,6 +61,6 @@ def plot_confusion_matrix(data_true,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.tight_layout()
-    plt.show()
+    # plt.show()
     if save_plot:
         plt.savefig(title, bbox_inches='tight')

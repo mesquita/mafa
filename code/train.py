@@ -40,26 +40,29 @@ def train(path, kfold=None):
     clf = RandomForestClassifier(n_estimators=100, max_depth=30, random_state=0)
 
     param_grid = {
-        'n_estimators': [200, 500],
+        'n_estimators': [100, 200, 500],
+        # 'n_estimators': [100],
         'max_features': ['auto', 'sqrt', 'log2'],
-        'max_depth': [4, 5, 6, 7, 8],
+        # 'max_features': ['auto'],
+        'max_depth': [4, 5, 6, 7, 8, 15, 20, 30, 50],
+        # 'max_depth': [30],
         'criterion': ['gini', 'entropy']
     }
     CV_rfc = GridSearchCV(estimator=clf, param_grid=param_grid, cv=kfold)
 
     CV_rfc.fit(X_train, y_train)
     print(CV_rfc.best_params_)
+    f = open("best_params.txt", "w")
+    f.write(str(dict))
+    f.close()
 
-    y_pred = clf.predict(X_test)
+    clf_best = RandomForestClassifier(**CV_rfc.best_params_)
+    clf_best.fit(X_train, y_train)
+
+    y_pred = clf_best.predict(X_test)
 
     print(classification_report(y_test, y_pred, target_names=labels))
-    # plot_confusion_matrix(data_true=y_test, data_pred=y_pred, classes=labels, normalize=True)
-    feat_import = clf.feature_importances_
-
-    # else:
-    #     scores = cross_val_score(clf, X, y, cv=kfold)
-    #     print(scores)
-    #     print(f'Média: {np.mean(scores)}')
+    plot_confusion_matrix(data_true=y_test, data_pred=y_pred, classes=labels, normalize=True, save_plot=True)
 
     return print('oi')
 
@@ -73,6 +76,6 @@ if __name__ == '__main__':
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Main parameters
-    feat_path = os.path.join(current_dir, "data/data_original_code.csv")  # Output feature path
+    feat_path = os.path.join(current_dir, "data/data.csv")  # Output feature path
 
     train(path=feat_path, kfold=10)
