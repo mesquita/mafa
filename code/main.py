@@ -210,11 +210,6 @@ def train(X_train,
         save_obj(obj=CV_rfc.best_params_, name=best_param_path)
 
     if type_param_search == 'bayesian':
-        param_to_search = {
-            "n_estimators": [10, 250],
-            "min_samples_split": [2, 25],
-            "max_features": [0.1, 0.999],
-        }
         best_params = optimize_rfc(data=X_train, targets=y_train, pbounds=param_to_search)
 
     else:
@@ -279,14 +274,15 @@ if __name__ == '__main__':
     }
 
     param_bay = {
-        'n_estimators': [1, 500],
-        'max_depth': [4, 50],
+        "n_estimators": [10, 250],
+        "min_samples_split": [2, 25],
+        "max_features": [0.1, 0.999],
     }
 
     train(X_train=X_train,
           y_train=y_train,
           type_param_search='bayesian',
-          param_to_search=param_grid,
+          param_to_search=param_bay,
           kfold=10)
 
     # Evaluating traininig with validation data
