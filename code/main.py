@@ -140,6 +140,16 @@ def rfc_cv(n_estimators, min_samples_split, max_features, data, targets):
     of cross validation is returned.
     Our goal is to find combinations of n_estimators, min_samples_split, and
     max_features that minimzes the log loss.
+
+    Args:
+        n_estimators ([type]): [description]
+        min_samples_split ([type]): [description]
+        max_features ([type]): [description]
+        data ([type]): [description]
+        targets ([type]): [description]
+
+    Returns:
+        [type]: [description]
     """
     estimator = RandomForestClassifier(n_estimators=n_estimators,
                                        min_samples_split=min_samples_split,
@@ -195,8 +205,11 @@ def train(X_train,
         is the k in kfold. Defaults to None.
     """
 
+    if best_param_path is None:
+        best_param_path = "best_params.pickle"
+
     if param_to_search is None:
-        param_to_search = {'n_estimators': [50, 100], 'max_depth': [10, 20, 30]}
+        param_to_search = {'n_estimators': [10, 100], 'max_depth': [10, 20, 30]}
 
     if type_param_search == 'gridsearch':
         # Random Forest classifier
@@ -205,12 +218,14 @@ def train(X_train,
         CV_rfc = GridSearchCV(estimator=clf, param_grid=param_to_search, cv=kfold)
         CV_rfc.fit(X_train, y_train)
 
-        if best_param_path is None:
-            best_param_path = "best_params.pickle"
+        # Saving dict with best_params
         save_obj(obj=CV_rfc.best_params_, name=best_param_path)
 
     if type_param_search == 'bayesian':
         best_params = optimize_rfc(data=X_train, targets=y_train, pbounds=param_to_search)
+        best_params = best_params['params']
+        best_params = {k: int(round(v)) for k, v in best_params.items()}
+        save_obj(obj=best_params, name=best_param_path)
 
     else:
         raise NotImplementedError
@@ -274,7 +289,7 @@ if __name__ == '__main__':
     }
 
     param_bay = {
-        "n_estimators": [10, 250],
+        "n_estimators": [10, 500],
         "min_samples_split": [2, 25],
         "max_features": [0.1, 0.999],
     }
