@@ -40,7 +40,6 @@ from sklearn.neighbors import KernelDensity  # Kernel density estimator
 from tqdm import tqdm as tqdm
 
 from prognosis.process import feature as feat  # Import feature methods
-# SBM
 # from prognosis.process.databalance import awgn
 from prognosis.process.feature import find_peaks  # Peak detection
 
@@ -353,17 +352,17 @@ def pproc(data, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
 
 if __name__ == '__main__':
 
-	current_dir = os.path.dirname(os.path.realpath(__file__))
+    current_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Main parameters
-	path = os.path.join(current_dir, "data/mafaulda/")
-	feat_path = os.path.join(current_dir, "data/data.csv")  # Output feature path
+    path = os.path.join(current_dir, "data/mafaulda/")
+    feat_path = os.path.join(current_dir, "data/data.csv")  # Output feature path
 
     # Frequency Parameters
-	frq_min = 5  # Lowest frequency
-	frq_max = 700  # Highest frequency
-	frq_smp = 5e+4  # Sampling frequency
+    frq_min = 5  # Lowest frequency
+    frq_max = 700  # Highest frequency
+    frq_smp = 5e+4  # Sampling frequency
 
     # Reading data and saving
-	data = read_mafaulda(path)
-	data.to_csv(feat_path, index_label='Sample')
+    data = read_mafaulda(path)
+    data.to_csv(feat_path, index_label='Sample')

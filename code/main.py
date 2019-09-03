@@ -115,15 +115,17 @@ def sep_train_val_test(df, labels):
     # separate train & test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    # save the X_test and y_test
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    np.savetxt(os.path.join(current_dir, "data/X_test.csv"), X_test, delimiter=",")
-    np.savetxt(os.path.join(current_dir, "data/y_test.csv"), y_test, delimiter=",")
-
     # separate train and validation
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2)
 
     df = make_label_distr_df(y=y, y_train=y_train, y_val=y_val, y_test=y_test, labels=labels)
+
+    # save the X_ and y_ (train, validation, test)
+
+    dataset = ['X_train', 'y_train', 'X_val', 'y_val', 'X_test', 'y_test']
+    for datatype in dataset:
+        whole_path = os.path.join(current_dir, 'data', datatype + '.csv')
+        np.savetxt(whole_path, vars()[datatype], delimiter=",")
 
     print('Porcentagem das separações:')
     print(df)
@@ -132,7 +134,7 @@ def sep_train_val_test(df, labels):
     return X_train, y_train, X_val, y_val
 
 
-def rfc_cv(n_estimators, min_samples_split, max_features, data, targets):
+def rfc_cv(n_estimators, max_depth, min_samples_split, data, targets):
     """Random Forest cross validation.
     This function will instantiate a random forest classifier with parameters
     n_estimators, min_samples_split, and max_features. Combined with data and
@@ -152,32 +154,30 @@ def rfc_cv(n_estimators, min_samples_split, max_features, data, targets):
         [type]: [description]
     """
     estimator = RandomForestClassifier(n_estimators=n_estimators,
+                                       max_depth=max_depth,
                                        min_samples_split=min_samples_split,
-                                       max_features=max_features,
                                        random_state=2)
     cval = cross_val_score(estimator, data, targets, scoring='neg_log_loss', cv=4)
     return cval.mean()
 
 
-def optimize_rfc(data, targets, pbounds=None):
+def optimize_rfc(data, targets, pbounds=None, n_iter=2):
     """Apply Bayesian Optimization to Random Forest parameters."""
-    def rfc_crossval(n_estimators, min_samples_split, max_features):
+    def rfc_crossval(n_estimators, max_depth, min_samples_split):
         """Wrapper of RandomForest cross validation.
         Notice how we ensure n_estimators and min_samples_split are casted
-        to integer before we pass them along. Moreover, to avoid max_features
-        taking values outside the (0, 1) range, we also ensure it is capped
-        accordingly.
+        to integer before we pass them along.
         """
         return rfc_cv(
             n_estimators=int(n_estimators),
+            max_depth=int(max_depth),
             min_samples_split=int(min_samples_split),
-            max_features=max(min(max_features, 0.999), 1e-3),
             data=data,
             targets=targets,
         )
 
     optimizer = BayesianOptimization(f=rfc_crossval, pbounds=pbounds, random_state=1234, verbose=2)
-    optimizer.maximize(n_iter=2)
+    optimizer.maximize(n_iter=n_iter)
 
     print("Final result:", optimizer.max)
     return optimizer.max
@@ -188,6 +188,7 @@ def train(X_train,
           type_param_search='gridsearch',
           param_to_search=None,
           kfold=None,
+          n_iter_bay=None,
           best_param_path=None):
     """Training a Random Forest Classifier. Currently saving the best parameters
     to a pickle file named "best_params.pickle".
@@ -222,7 +223,12 @@ def train(X_train,
         save_obj(obj=CV_rfc.best_params_, name=best_param_path)
 
     if type_param_search == 'bayesian':
-        best_params = optimize_rfc(data=X_train, targets=y_train, pbounds=param_to_search)
+        if n_iter_bay is None:
+            n_iter_bay = 10
+        best_params = optimize_rfc(data=X_train,
+                                   targets=y_train,
+                                   pbounds=param_to_search,
+                                   n_iter=n_iter_bay)
         best_params = best_params['params']
         best_params = {k: int(round(v)) for k, v in best_params.items()}
         save_obj(obj=best_params, name=best_param_path)
@@ -257,6 +263,7 @@ def evaluation(X_train, y_train, X_val, y_val, best_param_path=None):
     plot_confusion_matrix(data_true=y_val,
                           data_pred=y_pred,
                           classes=labels,
+                          title='Confusion Matrix Train',
                           normalize=True,
                           save_plot=True)
 
@@ -288,17 +295,14 @@ if __name__ == '__main__':
         'criterion': ['gini', 'entropy']
     }
 
-    param_bay = {
-        "n_estimators": [10, 500],
-        "min_samples_split": [2, 25],
-        "max_features": [0.1, 0.999],
-    }
+    param_bay = {"n_estimators": [1, 500], 'max_depth': [1, 500], "min_samples_split": [2, 500]}
 
     train(X_train=X_train,
           y_train=y_train,
           type_param_search='bayesian',
           param_to_search=param_bay,
-          kfold=10)
+          kfold=10,
+          n_iter_bay=50)
 
     # Evaluating traininig with validation data
     evaluation(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)

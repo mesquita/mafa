@@ -1,4 +1,5 @@
 import itertools
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,7 +47,7 @@ def plot_confusion_matrix(data_true,
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
+    plt.xticks(tick_marks, classes, rotation=90)
     plt.yticks(tick_marks, classes)
 
     fmt = '.2f' if normalize else 'd'
@@ -63,4 +64,6 @@ def plot_confusion_matrix(data_true,
     plt.tight_layout()
     # plt.show()
     if save_plot:
-        plt.savefig(title, bbox_inches='tight')
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        path_to_save = os.path.join(current_dir, '..', title)
+        plt.savefig(path_to_save, bbox_inches='tight')
