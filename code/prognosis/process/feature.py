@@ -420,3 +420,4 @@ def find_peaks(x, npeaks=4, mpd=3):
     vmax = [vmax[i] for i in sidx]
 
     # Returning
+    return imax, vmax

@@ -1,3 +1,4 @@
+import fnmatch  # Filtering filenames
 import os
 import pickle
 from collections import Counter
@@ -8,14 +9,9 @@ from bayes_opt import BayesianOptimization
 from bayes_opt.util import Colours
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, f1_score
-from sklearn.model_selection import (GridSearchCV, cross_val_score, train_test_split)
+from sklearn.model_selection import GridSearchCV, cross_val_score
 
 from utils.confusionmatrix import plot_confusion_matrix
-
-
-def save_obj(obj, name):
-    with open(name, 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 def load_obj(name):
@@ -23,114 +19,23 @@ def load_obj(name):
         return pickle.load(f)
 
 
-def open_data(path):
-    """Open the csv data.
+def open_train_val_data(path):
 
-    Args:
-        path (string): string that is the path to csv.
+    labels = ['normal', 'imbalance', 'horizontal-misalignment',\
+    'vertical-misalignment', 'underhang', 'overhang']
+    # Get filenames
+    filenames = []
+    sep_data = {}
+    for root, dirnames, fnames in os.walk(path):
+        for num, fname in enumerate(fnmatch.filter(fnames, '*.pickle')):
+            filenames.append(os.path.join(root, fname))
+            name = fname[:-7]
+            sep_data[name] = load_obj(filenames[num])
 
-    Returns:
-        pandas.DataFrame: dataframe with data from csv.
-    """
-    data = pd.read_csv(path, index_col='Sample')
-    return data
-
-
-def get_data_and_label(data):
-    """Separate the features from labels
-
-    Args:
-        data (pandas.DataFrame): dataframe containing both features and labels.
-        Labels must be in a column called 'Class', that is the default.
-
-    Returns:
-        X, y: dataframe with only features and series with only labels.
-    """
-
-    y = data['Class']
-    X = data.drop(labels='Class', axis=1)
-
-    return X, y
-
-
-def compute_label_percentage(y):
-    """Compute the label percentage containing in y
-
-    Args:
-        y (pandas.Series): Series containing labels.
-
-    Returns:
-        list: list that has percentage of labels
-    """
-    # get the count of how many failures of each type y has and turn it into
-    # a numpy array
-    label_count_array = np.fromiter(Counter(y).values(), dtype=float)
-
-    # sum the total
-    total = np.sum(label_count_array)
-
-    # return the percentage
-    return (label_count_array / total) * 100
-
-
-def make_label_distr_df(y, y_train, y_val, y_test, labels):
-    """Make pandas.Dataframe with label percentage in each input.
-
-    Args:
-        y (pandas.Series/numpy.array): series/array containing all the labels
-        y_train (pandas.Series/numpy.array): series/array containing training labels
-        y_val (pandas.Series/numpy.array): series/array containing validation labels
-        y_test (pandas.Series/numpy.array): series/array containing test labels
-        labels (list): list containing labels names
-
-    Returns:
-        pandas.DataFrame: dataframe containing ordered label percentage in each case.
-    """
-
-    # create empty dataframe
-    df = pd.DataFrame(columns=['y', 'y_train', 'y_val', 'y_test'], index=labels)
-
-    # populate with percentage
-    df['y'] = compute_label_percentage(y)
-    df['y_train'] = compute_label_percentage(y_train)
-    df['y_val'] = compute_label_percentage(y_val)
-    df['y_test'] = compute_label_percentage(y_test)
-
-    return df
-
-
-def sep_train_val_test(df, labels):
-    """Separtes train, validation and test sets.
-
-    Args:
-        df (pandas.DataFrame): dataframe containig all the data and labels.
-        labels (list): list containing each label name.
-
-    Returns:
-        X_train, y_train, X_val, y_val: dataframes and series containing data and labels.
-    """
-    # separates features and label
-    X, y = get_data_and_label(df)
-
-    # separate train & test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-    # separate train and validation
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2)
-
-    df = make_label_distr_df(y=y, y_train=y_train, y_val=y_val, y_test=y_test, labels=labels)
-
-    # save the X_ and y_ (train, validation, test)
-
-    dataset = ['X_train', 'y_train', 'X_val', 'y_val', 'X_test', 'y_test']
-    for datatype in dataset:
-        whole_path = os.path.join(current_dir, 'data', datatype + '.csv')
-        np.savetxt(whole_path, vars()[datatype], delimiter=",")
-
-    print('Porcentagem das separações:')
-    print(df)
-    df.to_csv(path_or_buf=os.path.join(current_dir, "data/sep_percen.csv"))
-
+    X_train = sep_data['X_train']
+    y_train = sep_data['y_train']
+    X_val = sep_data['X_val']
+    y_val = sep_data['y_val']
     return X_train, y_train, X_val, y_val
 
 
@@ -210,7 +115,7 @@ def train(X_train,
         best_param_path = "best_params.pickle"
 
     if param_to_search is None:
-        param_to_search = {'n_estimators': [10, 100], 'max_depth': [10, 20, 30]}
+        param_to_search = {'n_estimators': [10, 100], 'max_depth': [10, 30]}
 
     if type_param_search == 'gridsearch':
         # Random Forest classifier
@@ -271,7 +176,6 @@ def evaluation(X_train, y_train, X_val, y_val, best_param_path=None):
 #*******************************************************************************
 # Main
 #*******************************************************************************
-
 if __name__ == '__main__':
     # Labels
 
@@ -280,13 +184,10 @@ if __name__ == '__main__':
 
     # Data path parameters
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    feat_path = os.path.join(current_dir, "data/data.csv")  # Output feature path
-
-    # Open features and label data
-    df = open_data(feat_path)
+    feat_path = os.path.join(current_dir, "data/data_sep")  # Output feature path
 
     # Separate train, validation and test
-    X_train, y_train, X_val, y_val = sep_train_val_test(df=df, labels=labels)
+    X_train, y_train, X_val, y_val = open_train_val_data(path=feat_path)
 
     # Training
     param_gridsearch = {
@@ -295,14 +196,14 @@ if __name__ == '__main__':
         'criterion': ['gini', 'entropy']
     }
 
-    param_bay = {"n_estimators": [1, 500], 'max_depth': [1, 500], "min_samples_split": [2, 500]}
+    param_bay = {"n_estimators": [10, 100], 'max_depth': [10, 100], "min_samples_split": [2, 20]}
 
     train(X_train=X_train,
           y_train=y_train,
           type_param_search='bayesian',
           param_to_search=param_bay,
           kfold=10,
-          n_iter_bay=50)
+          n_iter_bay=10)
 
     # Evaluating traininig with validation data
     evaluation(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)
