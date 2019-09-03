@@ -20,10 +20,6 @@ def load_obj(name):
 
 
 def open_train_val_data(path):
-
-    labels = ['normal', 'imbalance', 'horizontal-misalignment',\
-    'vertical-misalignment', 'underhang', 'overhang']
-    # Get filenames
     filenames = []
     sep_data = {}
     for root, dirnames, fnames in os.walk(path):
