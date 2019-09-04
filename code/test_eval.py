@@ -11,24 +11,7 @@ from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import (GridSearchCV, cross_val_score, train_test_split)
 
 from utils.confusionmatrix import plot_confusion_matrix
-
-
-def open_data(path):
-    """Open the csv data.
-
-    Args:
-        path (string): string that is the path to csv.
-
-    Returns:
-        pandas.DataFrame: dataframe with data from csv.
-    """
-    data = pd.read_csv(path)
-    return data
-
-
-def load_obj(name):
-    with open(name, 'rb') as f:
-        return pickle.load(f)
+from utils.picklepickle import load_obj
 
 
 def evaluation(X_train, y_train, X_val, y_val, best_param_path=None):
@@ -77,9 +60,8 @@ if __name__ == '__main__':
     current_dir = os.path.dirname(os.path.realpath(__file__))
     data_dict = dict.fromkeys(dataset, 0)
     for datatype in dataset:
-        whole_path = os.path.join(current_dir, 'data', datatype + '.csv')
-        df = open_data(whole_path)
-        data_dict[datatype] = df
+        whole_path = os.path.join(current_dir, 'data', 'data_sep', datatype + '.pickle')
+        data_dict[datatype] = load_obj(whole_path)
 
     evaluation(data_dict['X_train'],
                data_dict['y_train'],

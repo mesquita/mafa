@@ -12,11 +12,7 @@ from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import GridSearchCV, cross_val_score
 
 from utils.confusionmatrix import plot_confusion_matrix
-
-
-def load_obj(name):
-    with open(name, 'rb') as f:
-        return pickle.load(f)
+from utils.picklepickle import load_obj, save_obj
 
 
 def open_train_val_data(path):
@@ -199,7 +195,7 @@ if __name__ == '__main__':
           type_param_search='bayesian',
           param_to_search=param_bay,
           kfold=10,
-          n_iter_bay=10)
+          n_iter_bay=2)
 
     # Evaluating traininig with validation data
     evaluation(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)

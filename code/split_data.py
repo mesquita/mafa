@@ -6,27 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-
-def save_obj(obj, name):
-    with open(name, 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-
-def load_obj(name):
-    with open(name, 'rb') as f:
-        return pickle.load(f)
-
-
-def open_data(path):
-    """Open the csv data.
-
-    Args:
-        path (string): string that is the path to csv.
-
-    Returns:
-        pandas.DataFrame: dataframe with data from csv.
-    """
-    return pd.read_csv(path, index_col='Sample')
+from utils.picklepickle import load_obj, save_obj
 
 
 def get_data_and_label(data):
@@ -138,7 +118,7 @@ if __name__ == '__main__':
     feat_path = os.path.join(current_dir, "data/data.csv")  # Output feature path
 
     # Open features and label data
-    df = open_data(feat_path)
+    df = pd.read_csv(feat_path, index_col='Sample')
 
     # Separate train, validation and test
     sep_train_val_test(df=df, labels=labels)

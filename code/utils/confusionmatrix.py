@@ -65,5 +65,5 @@ def plot_confusion_matrix(data_true,
     # plt.show()
     if save_plot:
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        path_to_save = os.path.join(current_dir, '..', title)
+        path_to_save = os.path.join(current_dir, '..', 'confusion_matrix_images', title)
         plt.savefig(path_to_save, bbox_inches='tight')
