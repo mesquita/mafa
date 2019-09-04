@@ -202,7 +202,7 @@ if __name__ == '__main__':
           type_param_search='bayesian',
           param_to_search=param_bay,
           kfold=10,
-          n_iter_bay=2)
+          n_iter_bay=200)
 
     # Evaluating traininig with validation data
     evaluation(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
