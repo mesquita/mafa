@@ -7,9 +7,12 @@ import numpy as np
 import pandas as pd
 from bayes_opt import BayesianOptimization
 from bayes_opt.util import Colours
+from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from utils.confusionmatrix import plot_confusion_matrix
 from utils.picklepickle import load_obj, save_obj
@@ -26,9 +29,9 @@ def open_train_val_data(path):
 
     X_train = sep_data['X_train']
     y_train = sep_data['y_train']
-    X_val = sep_data['X_val']
-    y_val = sep_data['y_val']
-    return X_train, y_train, X_val, y_val
+    X_test = sep_data['X_test']
+    y_test = sep_data['y_test']
+    return X_train, y_train, X_test, y_test
 
 
 def rfc_cv(n_estimators, max_depth, min_samples_split, data, targets):
@@ -50,11 +53,15 @@ def rfc_cv(n_estimators, max_depth, min_samples_split, data, targets):
     Returns:
         [type]: [description]
     """
-    estimator = RandomForestClassifier(n_estimators=n_estimators,
-                                       max_depth=max_depth,
-                                       min_samples_split=min_samples_split,
-                                       random_state=2)
-    cval = cross_val_score(estimator, data, targets, scoring='neg_log_loss', cv=4)
+
+    clf = RandomForestClassifier(n_estimators=n_estimators,
+                                 max_depth=max_depth,
+                                 min_samples_split=min_samples_split,
+                                 random_state=2)
+
+    estimator = Pipeline(steps=[('zcore', StandardScaler()), ('pca', PCA()), ('clf', clf)])
+
+    cval = cross_val_score(estimator, data, targets, scoring='neg_log_loss', cv=10)
     return cval.mean()
 
 
@@ -73,7 +80,7 @@ def optimize_rfc(data, targets, pbounds=None, n_iter=2):
             targets=targets,
         )
 
-    optimizer = BayesianOptimization(f=rfc_crossval, pbounds=pbounds, random_state=1234, verbose=2)
+    optimizer = BayesianOptimization(f=rfc_crossval, pbounds=pbounds, verbose=2)
     optimizer.maximize(n_iter=n_iter)
 
     print("Final result:", optimizer.max)
@@ -134,7 +141,7 @@ def train(X_train,
         raise NotImplementedError
 
 
-def evaluation(X_train, y_train, X_val, y_val, best_param_path=None):
+def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
     """Evaluation of training using training data and validation data.
 
     Args:
@@ -154,13 +161,13 @@ def evaluation(X_train, y_train, X_val, y_val, best_param_path=None):
     clf_best = RandomForestClassifier(**best_params)
     clf_best.fit(X_train, y_train)
 
-    y_pred = clf_best.predict(X_val)
+    y_pred = clf_best.predict(X_test)
 
-    print(classification_report(y_val, y_pred, target_names=labels))
-    plot_confusion_matrix(data_true=y_val,
+    print(classification_report(y_test, y_pred, target_names=labels))
+    plot_confusion_matrix(data_true=y_test,
                           data_pred=y_pred,
                           classes=labels,
-                          title='Confusion Matrix Train',
+                          title='Confusion Matrix',
                           normalize=True,
                           save_plot=True)
 
@@ -179,7 +186,7 @@ if __name__ == '__main__':
     feat_path = os.path.join(current_dir, "data/data_sep")  # Output feature path
 
     # Separate train, validation and test
-    X_train, y_train, X_val, y_val = open_train_val_data(path=feat_path)
+    X_train, y_train, X_test, y_test = open_train_val_data(path=feat_path)
 
     # Training
     param_gridsearch = {
@@ -198,4 +205,4 @@ if __name__ == '__main__':
           n_iter_bay=2)
 
     # Evaluating traininig with validation data
-    evaluation(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)
+    evaluation(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)

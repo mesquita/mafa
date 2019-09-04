@@ -46,13 +46,12 @@ def compute_label_percentage(y):
     return (label_count_array / total) * 100
 
 
-def make_label_distr_df(y, y_train, y_val, y_test, labels):
+def make_label_distr_df(y, y_train, y_test, labels):
     """Make pandas.Dataframe with label percentage in each input.
 
     Args:
         y (pandas.Series/numpy.array): series/array containing all the labels
         y_train (pandas.Series/numpy.array): series/array containing training labels
-        y_val (pandas.Series/numpy.array): series/array containing validation labels
         y_test (pandas.Series/numpy.array): series/array containing test labels
         labels (list): list containing labels names
 
@@ -61,12 +60,11 @@ def make_label_distr_df(y, y_train, y_val, y_test, labels):
     """
 
     # create empty dataframe
-    df = pd.DataFrame(columns=['y', 'y_train', 'y_val', 'y_test'], index=labels)
+    df = pd.DataFrame(columns=['y', 'y_train', 'y_test'], index=labels)
 
     # populate with percentage
     df['y'] = compute_label_percentage(y)
     df['y_train'] = compute_label_percentage(y_train)
-    df['y_val'] = compute_label_percentage(y_val)
     df['y_test'] = compute_label_percentage(y_test)
 
     return df
@@ -80,7 +78,7 @@ def sep_train_val_test(df, labels):
         labels (list): list containing each label name.
 
     Returns:
-        X_train, y_train, X_val, y_val: dataframes and series containing data and labels.
+        X_train, y_train, X_test, y_test: dataframes and series containing data and labels.
     """
     # separates features and label
     X, y = get_data_and_label(df)
@@ -88,13 +86,10 @@ def sep_train_val_test(df, labels):
     # separate train & test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    # separate train and validation
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2)
+    df = make_label_distr_df(y=y, y_train=y_train, y_test=y_test, labels=labels)
 
-    df = make_label_distr_df(y=y, y_train=y_train, y_val=y_val, y_test=y_test, labels=labels)
-
-    # save the X_ and y_ (train, validation, test)
-    dataset = ['X_train', 'y_train', 'X_val', 'y_val', 'X_test', 'y_test']
+    # save the X_ and y_ (train, test)
+    dataset = ['X_train', 'y_train', 'X_test', 'y_test']
     for datatype in dataset:
         whole_path = os.path.join(current_dir, 'data', 'data_sep', datatype + '.pickle')
         save_obj(obj=(vars()[datatype]), name=whole_path)

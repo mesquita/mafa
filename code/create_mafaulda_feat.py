@@ -332,9 +332,6 @@ def pproc(data, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
 	@return Preprocessed data.
 	"""
 
-    # Normalizing
-    data = data / data.std(axis=0)
-
     # Computing the features
     sts_vec = stat_feat(data)
     frq_vec = freq_feat(data, smp_frq, frq_min, frq_max, num_frq, max_hrm)
