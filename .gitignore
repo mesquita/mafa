@@ -1,5 +1,8 @@
-# CSVs
 *.csv
+*.pickle
+*.csv#
+*.png
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
