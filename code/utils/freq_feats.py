@@ -60,64 +60,67 @@ def freq_feat(data, which_feat, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3,
     @return Preprocessed data.
     """
 
-    # Finding the number of signals and samples
-    signals = np.arange(data.shape[1])
-    num_smp = data.shape[0]
+    if data.isnull().all().all == True:
+        return np.nan
+    else:
+        # Finding the number of signals and samples
+        signals = np.arange(data.shape[1])
+        num_smp = data.shape[0]
 
-    # Computing real DFT transform for each signal
-    aux_data = [np.fft.rfft(data.iloc[:, sidx]) for sidx in signals]
-    # Setting target frequency range
-    frq_vls = np.linspace(0, smp_frq / 2.0, num=(num_smp / 2) + 1)
+        # Computing real DFT transform for each signal
+        aux_data = [np.fft.rfft(data.iloc[:, sidx]) for sidx in signals]
 
-    frq_idx = np.logical_and(frq_vls >= frq_min, frq_vls <= frq_max)
-    frq_vls = frq_vls[frq_idx]
+        # Setting target frequency range
+        frq_vls = np.linspace(0, smp_frq / 2.0, num=(num_smp / 2) + 1)
 
-    # Removing invalid frequencies
-    aux_data = [np.real(np.abs(a[frq_idx])) for a in aux_data]
+        frq_idx = np.logical_and(frq_vls >= frq_min, frq_vls <= frq_max)
+        frq_vls = frq_vls[frq_idx]
 
-    # Detect peaks from the tachometer
-    pidx, _ = find_peaks(aux_data[0], mpd=15)
+        # Removing invalid frequencies
+        aux_data = [np.real(np.abs(a[frq_idx])) for a in aux_data]
 
-    # Extract smallest frequency index and value (first harmonic)
-    fidx = np.min(pidx)
-    frot = frq_vls[fidx]
+        pidx, _ = find_peaks(aux_data[0], mpd=15)
 
-    # Setting the maximum harmonic
-    max_fidx = min(max_hrm * fidx, aux_data[0].shape[0] - 4)
+        # Extract smallest frequency index and value (first harmonic)
+        fidx = np.min(pidx)
+        frot = frq_vls[fidx]
 
-    # Harmonics index
-    hfidx = np.int64(np.round(np.linspace(fidx, max_fidx, num_frq)))
-    hfidx = hfidx.tolist()
+        # Setting the maximum harmonic
+        max_fidx = min(max_hrm * fidx, aux_data[0].shape[0] - 4)
 
-    # Initializing the features vector
-    frq_vec = []
+        # Harmonics index
+        hfidx = np.int64(np.round(np.linspace(fidx, max_fidx, num_frq)))
+        hfidx = hfidx.tolist()
 
-    # For each signal
-    for sidx, csgn in enumerate(aux_data):
+        # Initializing the features vector
+        frq_vec = []
 
-        # Extracting harmonic components
-        for ih, hf in enumerate(hfidx):
+        # For each signal
+        for sidx, csgn in enumerate(aux_data):
 
             # Extracting harmonic components
-            rhf = range(hf - 3, hf + 4)
-            frq_vec.append(np.max(csgn[rhf]))
+            for ih, hf in enumerate(hfidx):
 
-    # Computing auxiliary values
-    fmu = aux_data[0].mean()
+                # Extracting harmonic components
+                rhf = range(hf - 3, hf + 4)
+                frq_vec.append(np.max(csgn[rhf]))
 
-    if which_feat == 'first_harmonic':
-        return frq_vec[0]
-    elif which_feat == 'second_harmonic':
-        return frq_vec[1]
-    elif which_feat == 'third_harmonic':
-        return frq_vec[2]
-    elif which_feat == 'freq_mean':
-        return fmu
-    elif which_feat == 'freq_rms':
-        return np.sqrt(np.mean((aux_data[0])**2))
-    elif which_feat == 'freq_std':
-        return aux_data[0].std()
-    elif which_feat == 'smallest_freq':
-        return frot
-    else:
-        return -999
+        # Computing auxiliary values
+        fmu = aux_data[0].mean()
+
+        if which_feat == 'first_harmonic':
+            return frq_vec[0]
+        elif which_feat == 'second_harmonic':
+            return frq_vec[1]
+        elif which_feat == 'third_harmonic':
+            return frq_vec[2]
+        elif which_feat == 'freq_mean':
+            return fmu
+        elif which_feat == 'freq_rms':
+            return np.sqrt(np.mean((aux_data[0])**2))
+        elif which_feat == 'freq_std':
+            return aux_data[0].std()
+        elif which_feat == 'smallest_freq':
+            return frot
+        else:
+            return -999
