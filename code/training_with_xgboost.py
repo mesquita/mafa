@@ -34,17 +34,10 @@ def open_train_val_data(path):
     return X_train, y_train, X_test, y_test
 
 
-def optimize_xgb(X_train,
-                 y_train,
-                 param_dict,
-                 init_points=3,
-                 n_iter=5,
-                 num_boost_round=100,
-                 nfold=3):
+def optimize_xgb(X_train, y_train, param_dict, init_points=3, n_iter=5, nfold=3):
     dtrain = xgb.DMatrix(X_train, label=y_train)
 
-    def xgb_crossval(max_depth, eta, gamma, colsample_bytree):
-        # Used around 1000 boosting rounds in the full model
+    def xgb_crossval(max_depth, eta, gamma, colsample_bytree, num_boost_round):
         cv_result = xgb.cv(
             {
                 'eval_metric': 'rmse',
@@ -55,7 +48,7 @@ def optimize_xgb(X_train,
                 'colsample_bytree': colsample_bytree
             },
             dtrain,
-            num_boost_round=num_boost_round,
+            num_boost_round=int(num_boost_round),
             nfold=nfold)
 
         return -1.0 * cv_result['test-rmse-mean'].iloc[-1]
@@ -63,6 +56,7 @@ def optimize_xgb(X_train,
     xgb_bo = BayesianOptimization(xgb_crossval, pbounds=param_dict, verbose=2)
 
     xgb_bo.maximize(init_points=init_points, n_iter=n_iter, acq='ei')
+
     best_params = xgb_bo.max['params']
 
     return best_params
@@ -73,7 +67,6 @@ def train(X_train,
           param_to_search,
           init_points=3,
           n_iter=5,
-          num_boost_round=100,
           kfold=10,
           best_param_path=None):
     """Training a Random Forest Classifier. Currently saving the best parameters
@@ -100,7 +93,6 @@ def train(X_train,
                                param_dict=param_to_search,
                                init_points=init_points,
                                n_iter=n_iter,
-                               num_boost_round=num_boost_round,
                                nfold=kfold)
     save_obj(obj=best_params, name=best_param_path)
 
@@ -124,9 +116,12 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
 
     best_params['max_depth'] = int(best_params['max_depth'])
 
+    num_boost_round = int(best_params['num_boost_round'])
+    del best_params['num_boost_round']
+
     dtrain = xgb.DMatrix(X_train, label=y_train)
 
-    model2 = xgb.train(best_params, dtrain, num_boost_round=100)
+    model2 = xgb.train(best_params, dtrain, num_boost_round=num_boost_round)
 
     # Predict on testing and training set
     y_pred = model2.predict(xgb.DMatrix(X_test))
@@ -197,9 +192,10 @@ if __name__ == '__main__':
 
     param_dict = {
         'max_depth': (3, 50),
-        'eta': (0.1, 0.11),
+        'eta': (0.1, 0.3),
         'gamma': (0, 1),
-        'colsample_bytree': (0.3, 0.9)
+        'colsample_bytree': (0.3, 0.9),
+        'num_boost_round': (50, 150)
     }
 
     train(X_train=X_train,
@@ -207,7 +203,6 @@ if __name__ == '__main__':
           param_to_search=param_dict,
           init_points=3,
           n_iter=5,
-          num_boost_round=100,
           kfold=10)
 
     # Evaluating traininig with validation data
