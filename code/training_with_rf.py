@@ -59,7 +59,7 @@ def rfc_cv(n_estimators, max_depth, min_samples_split, data, targets):
                                  min_samples_split=min_samples_split,
                                  random_state=2)
 
-    estimator = Pipeline(steps=[('zcore', StandardScaler()), ('pca', PCA()), ('clf', clf)])
+    estimator = Pipeline(steps=[('zcore', StandardScaler()), ('pca', PCA(0.99)), ('clf', clf)])
 
     cval = cross_val_score(estimator, data, targets, scoring='neg_log_loss', cv=10)
     return cval.mean()
@@ -84,7 +84,7 @@ def optimize_rfc(data, targets, pbounds=None, n_iter=2):
     optimizer.maximize(n_iter=n_iter)
 
     print("Final result:", optimizer.max)
-    return optimizer.max
+    return optimizer.max['params']
 
 
 def train(X_train,
@@ -133,7 +133,6 @@ def train(X_train,
                                    targets=y_train,
                                    pbounds=param_to_search,
                                    n_iter=n_iter_bay)
-        best_params = best_params['params']
         best_params = {k: int(round(v)) for k, v in best_params.items()}
         save_obj(obj=best_params, name=best_param_path)
 

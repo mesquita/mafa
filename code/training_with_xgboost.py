@@ -34,30 +34,34 @@ def open_train_val_data(path):
     return X_train, y_train, X_test, y_test
 
 
+def xgb_cv(max_depth, learning_rate, n_estimators, gamma, data, targets):
+    clf = xgb.XGBClassifier(max_depth=max_depth,
+                            learning_rate=learning_rate,
+                            n_estimators=n_estimators,
+                            gamma=gamma)
+
+    estimator = Pipeline(steps=[('zcore', StandardScaler()), ('pca', PCA(0.99)), ('clf', clf)])
+
+    cval = cross_val_score(estimator, data, targets, scoring='neg_log_loss', cv=10)
+    return cval.mean()
+
+
 def optimize_xgb(X_train, y_train, param_dict, init_points=3, n_iter=5, nfold=3):
     dtrain = xgb.DMatrix(X_train, label=y_train)
 
-    def xgb_crossval(max_depth, eta, gamma, colsample_bytree, num_boost_round):
-        cv_result = xgb.cv(
-            {
-                'eval_metric': 'rmse',
-                'max_depth': int(max_depth),
-                'subsample': 0.8,
-                'eta': eta,
-                'gamma': gamma,
-                'colsample_bytree': colsample_bytree
-            },
-            dtrain,
-            num_boost_round=int(num_boost_round),
-            nfold=nfold)
+    def xgb_crossval(max_depth, learning_rate, n_estimators, gamma):
+        return xgb_cv(max_depth=int(max_depth),
+                      learning_rate=learning_rate,
+                      n_estimators=int(n_estimators),
+                      gamma=gamma,
+                      data=X_train,
+                      targets=y_train)
 
-        return -1.0 * cv_result['test-rmse-mean'].iloc[-1]
+    optimizer = BayesianOptimization(xgb_crossval, pbounds=param_dict, verbose=2)
 
-    xgb_bo = BayesianOptimization(xgb_crossval, pbounds=param_dict, verbose=2)
+    optimizer.maximize(n_iter=n_iter)
 
-    xgb_bo.maximize(init_points=init_points, n_iter=n_iter, acq='ei')
-
-    best_params = xgb_bo.max['params']
+    best_params = optimizer.max['params']
 
     return best_params
 
@@ -115,44 +119,13 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
     best_params = load_obj(best_param_path)
 
     best_params['max_depth'] = int(best_params['max_depth'])
+    best_params['n_estimators'] = int(best_params['n_estimators'])
 
-    num_boost_round = int(best_params['num_boost_round'])
-    del best_params['num_boost_round']
+    clf_best = xgb.XGBClassifier(**best_params)
+    clf_best.fit(X_train, y_train)
 
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-
-    model2 = xgb.train(best_params, dtrain, num_boost_round=num_boost_round)
-
-    # Predict on testing and training set
-    y_pred = model2.predict(xgb.DMatrix(X_test))
-    # y_pred = np.around(y_pred).astype(int)
-
-    y_pred_aux = []
-    for value in y_pred:
-        if value >= 5:
-            value = 5
-        elif value <= 0:
-            value = 0
-        else:
-            value = int(round(value))
-        y_pred_aux.append(value)
-
-    y_pred = y_pred_aux
-
-    y_train_pred = model2.predict(dtrain)
-    # y_train_pred = np.around(y_train_pred).astype(int)
-
-    y_train_pred_aux = []
-    for value in y_train_pred:
-        if value >= 5:
-            value = 5
-        elif value <= 0:
-            value = 0
-        else:
-            value = int(round(value))
-        y_train_pred_aux.append(value)
-
-    y_train_pred = y_train_pred_aux
+    y_pred = clf_best.predict(X_test)
+    y_train_pred = clf_best.predict(X_train)
 
     print('-------- Train -----------')
     print(classification_report(y_train, y_train_pred, target_names=labels))
@@ -191,11 +164,10 @@ if __name__ == '__main__':
     X_train, y_train, X_test, y_test = open_train_val_data(path=feat_path)
 
     param_dict = {
-        'max_depth': (3, 50),
-        'eta': (0.1, 0.3),
-        'gamma': (0, 1),
-        'colsample_bytree': (0.3, 0.9),
-        'num_boost_round': (50, 150)
+        'max_depth': (10, 200),
+        'learning_rate': (0.1, 0.3),
+        'n_estimators': (20, 120),
+        'gamma': (0, 1)
     }
 
     train(X_train=X_train,
