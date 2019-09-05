@@ -52,12 +52,12 @@ from prognosis.process.feature import find_peaks  # Peak detection
 
 def read_mafaulda(path):
     """
-	Loads MaFaulDa database data.
+    Loads MaFaulDa database data.
 
-	@param path Database path.
+    @param path Database path.
 
-	@return Dataframe including all data features.
-	"""
+    @return Dataframe including all data features.
+    """
 
     # Number of frequencies
     num_frq = 3
@@ -156,15 +156,15 @@ def read_mafaulda(path):
 
 def data_entropy(X, n_grid=1000, kernel=False, bandwidth=0.2, **kwargs):
     """
-	Computes unidimensional entropy from data points.
+    Computes unidimensional entropy from data points.
 
-	@param X Input matrix [n_samples, n_features].
-	@param n_grid Number of grid points. Integer.
-	@param kernel Boolean to set kernel method on/off.
-	@param bandwidth Kernel bandwidth. Scalar.
+    @param X Input matrix [n_samples, n_features].
+    @param n_grid Number of grid points. Integer.
+    @param kernel Boolean to set kernel method on/off.
+    @param bandwidth Kernel bandwidth. Scalar.
 
-	@return Vector of [n_features], with the corresponding feature entropy.
-	"""
+    @return Vector of [n_features], with the corresponding feature entropy.
+    """
 
     # Testing X dimension
     if (len(X.shape) > 1):
@@ -213,13 +213,13 @@ def data_entropy(X, n_grid=1000, kernel=False, bandwidth=0.2, **kwargs):
 
 def stat_feat(data):
     """
-	Computes the statistical feats from the raw data. Based on the features
-	found in [Rauber2015].
+    Computes the statistical feats from the raw data. Based on the features
+    found in [Rauber2015].
 
-	@param data Input data. Numpy matrix.
+    @param data Input data. Numpy matrix.
 
-	@retun Statistical features.
-	"""
+    @retun Statistical features.
+    """
 
     # Computing auxiliary values
     rms = np.sqrt(np.mean(data**2, axis=0))  # RMS value
@@ -252,17 +252,17 @@ def stat_feat(data):
 
 def freq_feat(data, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
     """
-	Computes features from the raw data.
+    Computes features from the raw data.
 
-	@param data Input data list. Numpy matrices list.
-	@param smp_frq Number of points. Scalar.
-	@param frq_min Minimum target frequency. Scalar.
-	@param frq_max Maximum target frequency. Scalar.
-	@param num_frq Number of frequency on the interval.
-	@param max_hrm Maximum harmonic on the interval.
+    @param data Input data list. Numpy matrices list.
+    @param smp_frq Number of points. Scalar.
+    @param frq_min Minimum target frequency. Scalar.
+    @param frq_max Maximum target frequency. Scalar.
+    @param num_frq Number of frequency on the interval.
+    @param max_hrm Maximum harmonic on the interval.
 
-	@return Preprocessed data.
-	"""
+    @return Preprocessed data.
+    """
 
     # Finding the number of signals and samples
     signals = range(data.shape[1])
@@ -322,15 +322,15 @@ def freq_feat(data, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
 
 def pproc(data, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
     """
-	@param data Input data list. Numpy matrices list.
-	@param smp_frq Number of points. Scalar.
-	@param frq_min Minimum target frequency. Scalar.
-	@param frq_max Maximum target frequency. Scalar.
-	@param num_frq Number of frequency on the interval.
-	@param max_hrm Maximum harmonic on the interval.
+    @param data Input data list. Numpy matrices list.
+    @param smp_frq Number of points. Scalar.
+    @param frq_min Minimum target frequency. Scalar.
+    @param frq_max Maximum target frequency. Scalar.
+    @param num_frq Number of frequency on the interval.
+    @param max_hrm Maximum harmonic on the interval.
 
-	@return Preprocessed data.
-	"""
+    @return Preprocessed data.
+    """
 
     # Computing the features
     sts_vec = stat_feat(data)

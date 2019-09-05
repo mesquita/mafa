@@ -111,7 +111,7 @@ def train(X_train,
     """
 
     if best_param_path is None:
-        best_param_path = "best_params.pickle"
+        best_param_path = "best_params_rf.pickle"
 
     if param_to_search is None:
         param_to_search = {'n_estimators': [10, 100], 'max_depth': [10, 30]}
@@ -154,20 +154,32 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
     """
 
     if best_param_path is None:
-        best_param_path = "best_params.pickle"
+        best_param_path = "best_params_rf.pickle"
 
     best_params = load_obj(best_param_path)
 
     clf_best = RandomForestClassifier(**best_params)
     clf_best.fit(X_train, y_train)
 
+    y_train_pred = clf_best.predict(X_train)
     y_pred = clf_best.predict(X_test)
+
+    print('-------- Train -----------')
+    print(classification_report(y_train, y_train_pred, target_names=labels))
+    plot_confusion_matrix(data_true=y_train,
+                          data_pred=y_train_pred,
+                          classes=labels,
+                          title='RF -- Confusion Matrix Training',
+                          normalize=True,
+                          save_plot=True)
+
+    print('-------- Test -----------')
 
     print(classification_report(y_test, y_pred, target_names=labels))
     plot_confusion_matrix(data_true=y_test,
                           data_pred=y_pred,
                           classes=labels,
-                          title='Confusion Matrix',
+                          title='RF -- Confusion Matrix Test',
                           normalize=True,
                           save_plot=True)
 
@@ -195,14 +207,14 @@ if __name__ == '__main__':
         'criterion': ['gini', 'entropy']
     }
 
-    param_bay = {"n_estimators": [10, 100], 'max_depth': [10, 100], "min_samples_split": [2, 20]}
+    param_bay = {"n_estimators": [20, 200], 'max_depth': [10, 200], "min_samples_split": [2, 5]}
 
     train(X_train=X_train,
           y_train=y_train,
           type_param_search='bayesian',
           param_to_search=param_bay,
           kfold=10,
-          n_iter_bay=200)
+          n_iter_bay=5)
 
     # Evaluating traininig with validation data
     evaluation(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
