@@ -57,6 +57,7 @@ def augment_data(path, n_aug=3):
         df = pd.read_csv(fn, header=None)
         for ii in range(n_aug):
             for column in df.columns:
+                # Add noise do signal
                 df[column] = add_noise_snr(signal=df[column], target_snr_db=20)
             path_out = fn_out[:-4] + '_' + str(ii) + '.csv'
             df.to_csv(path_out, header=False, index=False)

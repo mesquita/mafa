@@ -53,7 +53,8 @@ def compute_statistical_features(data, window_size, center=False):
     feats = pd.concat(
         [
             mean_feats, median_feats, std_feats, min_feats, max_feats, skew_feats, kurt_feats,
-            first_percentile_feats, third_percentile_feats, first_harmonic, second_harmonic, third_harmonic, freq_mean, freq_rms, freq_std
+            first_percentile_feats, third_percentile_feats, first_harmonic, second_harmonic,
+            third_harmonic, freq_mean, freq_rms, freq_std
         ],
         axis=1,
     )

@@ -8,8 +8,9 @@ import pandas as pd
 from bayes_opt import BayesianOptimization
 from bayes_opt.util import Colours
 from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, f1_score
+from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -111,7 +112,8 @@ def train(X_train,
     """
 
     if best_param_path is None:
-        best_param_path = "best_params_rf.pickle"
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        best_param_path = os.path.join(current_dir, "data/best_params/best_params_rf.pickle")
 
     if param_to_search is None:
         param_to_search = {'n_estimators': [10, 100], 'max_depth': [10, 30]}
@@ -126,7 +128,7 @@ def train(X_train,
         # Saving dict with best_params
         save_obj(obj=CV_rfc.best_params_, name=best_param_path)
 
-    if type_param_search == 'bayesian':
+    elif type_param_search == 'bayesian':
         if n_iter_bay is None:
             n_iter_bay = 10
         best_params = optimize_rfc(data=X_train,
@@ -153,7 +155,8 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
     """
 
     if best_param_path is None:
-        best_param_path = "best_params_rf.pickle"
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        best_param_path = os.path.join(current_dir, "data/best_params/best_params_rf.pickle")
 
     best_params = load_obj(best_param_path)
 
@@ -171,9 +174,11 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
                           title='RF -- Confusion Matrix Training',
                           normalize=True,
                           save_plot=True)
+    print(f'Accuracy: {accuracy_score(y_train, y_train_pred)}')
+    print(f'F1 score [macro]: {f1_score(y_train, y_train_pred, average="macro")}')
+    print(f'F1 score [micro]: {f1_score(y_train, y_train_pred, average="micro")}')
 
     print('-------- Test -----------')
-
     print(classification_report(y_test, y_pred, target_names=labels))
     plot_confusion_matrix(data_true=y_test,
                           data_pred=y_pred,
@@ -181,6 +186,9 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
                           title='RF -- Confusion Matrix Test',
                           normalize=True,
                           save_plot=True)
+    print(f'Accuracy: {accuracy_score(y_test, y_pred)}')
+    print(f'F1 score [macro]: {f1_score(y_test, y_pred, average="macro")}')
+    print(f'F1 score [micro]: {f1_score(y_train, y_train_pred, average="micro")}')
 
 
 #*******************************************************************************

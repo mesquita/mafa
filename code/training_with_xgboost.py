@@ -9,7 +9,7 @@ import xgboost as xgb
 from bayes_opt import BayesianOptimization
 from bayes_opt.util import Colours
 from sklearn.decomposition import PCA
-from sklearn.metrics import classification_report, f1_score
+from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -46,7 +46,7 @@ def xgb_cv(max_depth, learning_rate, n_estimators, gamma, data, targets):
     return cval.mean()
 
 
-def optimize_xgb(X_train, y_train, param_dict, init_points=3, n_iter=5, nfold=3):
+def optimize_xgb(X_train, y_train, param_dict, n_iter=5, nfold=3):
     dtrain = xgb.DMatrix(X_train, label=y_train)
 
     def xgb_crossval(max_depth, learning_rate, n_estimators, gamma):
@@ -66,13 +66,7 @@ def optimize_xgb(X_train, y_train, param_dict, init_points=3, n_iter=5, nfold=3)
     return best_params
 
 
-def train(X_train,
-          y_train,
-          param_to_search,
-          init_points=3,
-          n_iter=5,
-          kfold=10,
-          best_param_path=None):
+def train(X_train, y_train, param_to_search, n_iter=5, kfold=10, best_param_path=None):
     """Training a Random Forest Classifier. Currently saving the best parameters
     to a pickle file named "best_params.pickle".
 
@@ -90,12 +84,12 @@ def train(X_train,
     """
 
     if best_param_path is None:
-        best_param_path = "best_params_xgb.pickle"
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        best_param_path = os.path.join(current_dir, "data/best_params/best_params_xgb.pickle")
 
     best_params = optimize_xgb(X_train=X_train,
                                y_train=y_train,
                                param_dict=param_to_search,
-                               init_points=init_points,
                                n_iter=n_iter,
                                nfold=kfold)
     save_obj(obj=best_params, name=best_param_path)
@@ -114,7 +108,8 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
     """
 
     if best_param_path is None:
-        best_param_path = "best_params_xgb.pickle"
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        best_param_path = os.path.join(current_dir, "data/best_params/best_params_xgb.pickle")
 
     best_params = load_obj(best_param_path)
 
@@ -132,19 +127,24 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
     plot_confusion_matrix(data_true=y_train,
                           data_pred=y_train_pred,
                           classes=labels,
-                          title='XGBoost -- Confusion Matrix Training',
+                          title='RF -- Confusion Matrix Training',
                           normalize=True,
                           save_plot=True)
-
+    print(f'Accuracy: {accuracy_score(y_train, y_train_pred)}')
+    print(f'F1 score [macro]: {f1_score(y_train, y_train_pred, average="macro")}')
+    print(f'F1 score [micro]: {f1_score(y_train, y_train_pred, average="micro")}')
     print('-------- Test -----------')
 
     print(classification_report(y_test, y_pred, target_names=labels))
     plot_confusion_matrix(data_true=y_test,
                           data_pred=y_pred,
                           classes=labels,
-                          title='XGBoost -- Confusion Matrix Test',
+                          title='RF -- Confusion Matrix Test',
                           normalize=True,
                           save_plot=True)
+    print(f'Accuracy: {accuracy_score(y_test, y_pred)}')
+    print(f'F1 score [macro]: {f1_score(y_test, y_pred, average="macro")}')
+    print(f'F1 score [micro]: {f1_score(y_train, y_train_pred, average="micro")}')
 
 
 #*******************************************************************************
@@ -170,12 +170,7 @@ if __name__ == '__main__':
         'gamma': (0, 1)
     }
 
-    train(X_train=X_train,
-          y_train=y_train,
-          param_to_search=param_dict,
-          init_points=3,
-          n_iter=5,
-          kfold=10)
+    train(X_train=X_train, y_train=y_train, param_to_search=param_dict, n_iter=5, kfold=10)
 
     # Evaluating traininig with validation data
     evaluation(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, labels=labels)

@@ -13,8 +13,8 @@ path = os.path.join(current_dir, "data/mafaulda/normal/12.288_0.csv")
 df = pd.read_csv(path, header=None, names=sign_nms)
 
 df.index = pd.to_timedelta(df.index, unit='T')
-df = df.resample('20T').mean()
+df = df.resample('25T').mean()
 
-janelada = statfeat(data=df, window_size=5000, center=False)
+janelada = statfeat(data=d''f, window_size=4 * 10**3, center=False)
 print(janelada)
 print(janelada.columns)

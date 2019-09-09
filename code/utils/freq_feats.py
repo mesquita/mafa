@@ -20,6 +20,8 @@ def find_peaks(x, npeaks=4, mpd=3):
 
     # Copy input
     y = np.copy(x)
+    if len(y) == 0:
+        return np.nan, np.nan
 
     # Setting output lists
     imax = []
@@ -29,8 +31,11 @@ def find_peaks(x, npeaks=4, mpd=3):
     for i in range(npeaks):
 
         # Find maxima
-        imax.append(np.nanargmax(y))
-        vmax.append(np.nanmax(y))
+        try:
+            imax.append(np.nanargmax(y))
+            vmax.append(np.nanmax(y))
+        except:
+            return np.nan, np.nan
 
         # Setting neighborhood as invalid
         y[imax[-1] - mpd:imax[-1] + mpd + 1] = np.nan
@@ -46,7 +51,7 @@ def find_peaks(x, npeaks=4, mpd=3):
     return imax, vmax
 
 
-def freq_feat(data, which_feat, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
+def freq_feat(data, which_feat, smp_frq=2e+3, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
     """
     Computes features from the raw data.
 
@@ -80,6 +85,8 @@ def freq_feat(data, which_feat, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3,
         aux_data = [np.real(np.abs(a[frq_idx])) for a in aux_data]
 
         pidx, _ = find_peaks(aux_data[0], mpd=15)
+        if pidx is np.nan:
+            return np.nan
 
         # Extract smallest frequency index and value (first harmonic)
         fidx = np.min(pidx)
