@@ -1,5 +1,6 @@
 import fnmatch  # Filtering filenames
 import os
+import random
 
 import numpy as np
 import pandas as pd
@@ -27,6 +28,7 @@ def add_noise_snr(signal, target_snr_db=20):
     noise_avg_watts = 10**(noise_avg_db / 10)
     # Generate an sample of white noise
     mean_noise = 0
+    random.seed(33)
     noise_volts = np.random.normal(mean_noise, np.sqrt(noise_avg_watts), len(signal))
     # Noise up the original signal
     y_volts = x_volts + noise_volts
@@ -70,6 +72,7 @@ def augment_data(path, n_aug=3):
 #*******************************************************************************
 
 if __name__ == '__main__':
+    random.seed(33)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
 

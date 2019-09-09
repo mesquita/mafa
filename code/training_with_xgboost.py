@@ -1,6 +1,7 @@
 import fnmatch  # Filtering filenames
 import os
 import pickle
+import random
 from collections import Counter
 
 import numpy as np
@@ -38,7 +39,8 @@ def xgb_cv(max_depth, learning_rate, n_estimators, gamma, data, targets):
     clf = xgb.XGBClassifier(max_depth=max_depth,
                             learning_rate=learning_rate,
                             n_estimators=n_estimators,
-                            gamma=gamma)
+                            gamma=gamma,
+                            random_state=33)
 
     estimator = Pipeline(steps=[('zcore', StandardScaler()), ('pca', PCA(0.99)), ('clf', clf)])
 
@@ -85,7 +87,8 @@ def train(X_train, y_train, param_to_search, n_iter=5, kfold=10, best_param_path
 
     if best_param_path is None:
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        best_param_path = os.path.join(current_dir, "data/best_params/best_params_xgb.pickle")
+        best_param_path = os.path.join(current_dir, "data/best_params/", type_of_data,
+                                       "best_params_xgb.pickle")
 
     best_params = optimize_xgb(X_train=X_train,
                                y_train=y_train,
@@ -95,7 +98,12 @@ def train(X_train, y_train, param_to_search, n_iter=5, kfold=10, best_param_path
     save_obj(obj=best_params, name=best_param_path)
 
 
-def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
+def save_clf_pred(path, y_pred, y_test):
+    path = path.replace("best_params", "clf_pred").replace("pickle", "csv")
+    pd.DataFrame.from_dict({'y_pred': y_pred, 'y_test': y_test}).to_csv(path)
+
+
+def evaluation(X_train, y_train, X_test, y_test, labels, type_of_data='raw', best_param_path=None):
     """Evaluation of training using training data and validation data.
 
     Args:
@@ -109,7 +117,8 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
 
     if best_param_path is None:
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        best_param_path = os.path.join(current_dir, "data/best_params/best_params_xgb.pickle")
+        best_param_path = os.path.join(current_dir, "data/best_params/", type_of_data,
+                                       "best_params_xgb.pickle")
 
     best_params = load_obj(best_param_path)
 
@@ -121,13 +130,13 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
 
     y_pred = clf_best.predict(X_test)
     y_train_pred = clf_best.predict(X_train)
-
+    save_clf_pred(best_param_path, y_pred, y_test)
     print('-------- Train -----------')
     print(classification_report(y_train, y_train_pred, target_names=labels))
     plot_confusion_matrix(data_true=y_train,
                           data_pred=y_train_pred,
                           classes=labels,
-                          title='RF -- Confusion Matrix Training',
+                          title=(type_of_data + '_XGBoost -- Confusion Matrix Training'),
                           normalize=True,
                           save_plot=True)
     print(f'Accuracy: {accuracy_score(y_train, y_train_pred)}')
@@ -139,12 +148,12 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
     plot_confusion_matrix(data_true=y_test,
                           data_pred=y_pred,
                           classes=labels,
-                          title='RF -- Confusion Matrix Test',
+                          title=(type_of_data + '_XGBoost -- Confusion Matrix Test'),
                           normalize=True,
                           save_plot=True)
     print(f'Accuracy: {accuracy_score(y_test, y_pred)}')
     print(f'F1 score [macro]: {f1_score(y_test, y_pred, average="macro")}')
-    print(f'F1 score [micro]: {f1_score(y_train, y_train_pred, average="micro")}')
+    print(f'F1 score [micro]: {f1_score(y_test, y_pred, average="micro")}')
 
 
 #*******************************************************************************
@@ -152,13 +161,15 @@ def evaluation(X_train, y_train, X_test, y_test, labels, best_param_path=None):
 #*******************************************************************************
 if __name__ == '__main__':
     # Labels
+    random.seed(33)
 
     labels = ['normal', 'imbalance', 'horizontal-misalignment',\
     'vertical-misalignment', 'underhang', 'overhang']
 
     # Data path parameters
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    feat_path = os.path.join(current_dir, "data/data_sep")  # Output feature path
+    type_of_data = 'raw'  # 'wavelet' / 'raw' / 'all_feat'
+    feat_path = os.path.join(current_dir, 'data', 'data_sep', type_of_data)
 
     # Separate train, validation and test
     X_train, y_train, X_test, y_test = open_train_val_data(path=feat_path)
@@ -170,7 +181,12 @@ if __name__ == '__main__':
         'gamma': (0, 1)
     }
 
-    train(X_train=X_train, y_train=y_train, param_to_search=param_dict, n_iter=5, kfold=10)
+    train(X_train=X_train, y_train=y_train, param_to_search=param_dict, n_iter=1, kfold=10)
 
     # Evaluating traininig with validation data
-    evaluation(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, labels=labels)
+    evaluation(X_train=X_train,
+               y_train=y_train,
+               X_test=X_test,
+               y_test=y_test,
+               type_of_data=type_of_data,
+               labels=labels)

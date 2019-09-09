@@ -1,6 +1,7 @@
 import fnmatch  # Filtering filenames
 import os
 import pickle
+import random
 from collections import Counter
 
 import numpy as np
@@ -58,7 +59,7 @@ def rfc_cv(n_estimators, max_depth, min_samples_split, data, targets):
     clf = RandomForestClassifier(n_estimators=n_estimators,
                                  max_depth=max_depth,
                                  min_samples_split=min_samples_split,
-                                 random_state=2)
+                                 random_state=33)
 
     estimator = Pipeline(steps=[('zcore', StandardScaler()), ('pca', PCA(0.99)), ('clf', clf)])
 
@@ -90,6 +91,7 @@ def optimize_rfc(data, targets, pbounds=None, n_iter=2):
 
 def train(X_train,
           y_train,
+          type_of_data='raw',
           type_param_search='gridsearch',
           param_to_search=None,
           kfold=None,
@@ -113,7 +115,8 @@ def train(X_train,
 
     if best_param_path is None:
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        best_param_path = os.path.join(current_dir, "data/best_params/best_params_rf.pickle")
+        best_param_path = os.path.join(current_dir, "data/best_params/", type_of_data,
+                                       "best_params_rf.pickle")
 
     if param_to_search is None:
         param_to_search = {'n_estimators': [10, 100], 'max_depth': [10, 30]}
@@ -142,7 +145,12 @@ def train(X_train,
         raise NotImplementedError
 
 
-def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
+def save_clf_pred(path, y_pred, y_test):
+    path = path.replace("best_params", "clf_pred").replace("pickle", "csv")
+    pd.DataFrame.from_dict({'y_pred': y_pred, 'y_test': y_test}).to_csv(path)
+
+
+def evaluation(X_train, y_train, X_test, y_test, labels, type_of_data='raw', best_param_path=None):
     """Evaluation of training using training data and validation data.
 
     Args:
@@ -156,7 +164,8 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
 
     if best_param_path is None:
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        best_param_path = os.path.join(current_dir, "data/best_params/best_params_rf.pickle")
+        best_param_path = os.path.join(current_dir, "data/best_params/", type_of_data,
+                                       "best_params_rf.pickle")
 
     best_params = load_obj(best_param_path)
 
@@ -165,13 +174,14 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
 
     y_train_pred = clf_best.predict(X_train)
     y_pred = clf_best.predict(X_test)
+    # save_clf_pred(best_param_path, y_pred, y_test)
 
     print('-------- Train -----------')
     print(classification_report(y_train, y_train_pred, target_names=labels))
     plot_confusion_matrix(data_true=y_train,
                           data_pred=y_train_pred,
                           classes=labels,
-                          title='RF -- Confusion Matrix Training',
+                          title=(type_of_data + '_RF -- Confusion Matrix Training'),
                           normalize=True,
                           save_plot=True)
     print(f'Accuracy: {accuracy_score(y_train, y_train_pred)}')
@@ -183,26 +193,29 @@ def evaluation(X_train, y_train, X_test, y_test, best_param_path=None):
     plot_confusion_matrix(data_true=y_test,
                           data_pred=y_pred,
                           classes=labels,
-                          title='RF -- Confusion Matrix Test',
-                          normalize=True,
+                          title=(type_of_data + '_RF -- Confusion Matrix Test'),
+                          normalize=False,
                           save_plot=True)
     print(f'Accuracy: {accuracy_score(y_test, y_pred)}')
     print(f'F1 score [macro]: {f1_score(y_test, y_pred, average="macro")}')
-    print(f'F1 score [micro]: {f1_score(y_train, y_train_pred, average="micro")}')
+    print(f'F1 score [micro]: {f1_score(y_test, y_pred, average="micro")}')
 
 
 #*******************************************************************************
 # Main
 #*******************************************************************************
 if __name__ == '__main__':
-    # Labels
 
+    random.seed(33)
+
+    # Labels
     labels = ['normal', 'imbalance', 'horizontal-misalignment',\
     'vertical-misalignment', 'underhang', 'overhang']
 
     # Data path parameters
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    feat_path = os.path.join(current_dir, "data/data_sep")  # Output feature path
+    type_of_data = 'wavelet'  # 'wavelet' / 'raw' / 'all_feat'
+    feat_path = os.path.join(current_dir, 'data', 'data_sep', type_of_data)
 
     # Separate train, validation and test
     X_train, y_train, X_test, y_test = open_train_val_data(path=feat_path)
@@ -216,12 +229,18 @@ if __name__ == '__main__':
 
     param_bay = {"n_estimators": [20, 200], 'max_depth': [10, 200], "min_samples_split": [2, 5]}
 
-    train(X_train=X_train,
-          y_train=y_train,
-          type_param_search='bayesian',
-          param_to_search=param_bay,
-          kfold=10,
-          n_iter_bay=5)
+    # train(X_train=X_train,
+    #       y_train=y_train,
+    #       type_param_search='bayesian',
+    #       param_to_search=param_bay,
+    #       type_of_data=type_of_data,
+    #       kfold=10,
+    #       n_iter_bay=1)
 
     # Evaluating traininig with validation data
-    evaluation(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+    evaluation(X_train=X_train,
+               y_train=y_train,
+               X_test=X_test,
+               y_test=y_test,
+               labels=labels,
+               type_of_data=type_of_data)

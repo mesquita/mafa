@@ -30,6 +30,7 @@ Computes MaFaulDa database features.
 import fnmatch  # Filtering filenames
 import glob  # Unix style pathname pattern expansion
 import os  # Parsing and walking through the data directory
+import random
 
 # Basic imports
 import numpy as np  # Numpy library (numeric algebra)
@@ -343,11 +344,12 @@ def pproc(data, smp_frq=5e+4, frq_min=5, frq_max=700, num_frq=3, max_hrm=3):
     return (output)
 
 
-#*******************************************************************************
+# *******************************************************************************
 # Main
-#*******************************************************************************
+# *******************************************************************************
 
 if __name__ == '__main__':
+    random.seed(33)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
 

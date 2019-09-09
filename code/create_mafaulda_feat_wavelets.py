@@ -119,8 +119,12 @@ def read_mafaulda(path, column_names):
     stat_nms = ["Ent_", "RMS_", "SRA_", "Krt_", "Skw_", "PPK_", "CF_", "ImF_",\
     "MrF_", "ShF_", "KrF_", "Mu_", "SD_"]
 
+    # Status types
+    sts_type = ['normal', 'imbalance', 'horizontal-misalignment',\
+    'vertical-misalignment', 'underhang', 'overhang']
     head_nms = []
     head_nms.extend([p + s for p in stat_nms for s in column_names])
+    head_nms.extend(["Class"])
     # Get filenames
     filenames = []
     for root, dirnames, fnames in os.walk(path):
@@ -130,10 +134,18 @@ def read_mafaulda(path, column_names):
     out_data = []
     for fn in tqdm(filenames):
 
+        # Parsing filename
+        aux_fn = os.path.normpath(fn)
+        aux_fn = aux_fn.split(os.sep)
+
+        # Finding class
+        cur_clss = aux_fn[int(np.argwhere([s in sts_type for s in aux_fn]))]
+        cur_clss = sts_type.index(cur_clss)
+
         cur_raw = load_obj(fn)
         cur_raw = cur_raw.values.astype(float)
         sts_vec = stat_feat(cur_raw)
-        output = np.r_[sts_vec]
+        output = np.r_[sts_vec, cur_clss]
         out_data.append(output.copy())
 
     out_data = pd.DataFrame(out_data, columns=head_nms)
